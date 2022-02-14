@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Design Guide Color -->
+
+    <color name="purple_500">#ff6200ee</color>
+    <color name="purple_700">#ff3700b3</color>
+    <color name="teal_200">#ff03dac5</color>
+    <color name="teal_700">#ff018786</color>
+    <color name="black">#ffffffff</color>
+    <color name="white">#ff000000</color>
+
+    <color name="color_4a00e0">#4a00e0</color>
+    <color name="color_d0d0d0">#d0d0d0</color>
+    <color name="color_3746ff">#3746ff</color>
+
+</resources>

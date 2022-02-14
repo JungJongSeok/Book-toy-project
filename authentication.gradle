@@ -1,0 +1,4 @@
+ext {
+    DEBUG_STORE_FILE = "../keystore/debug.keystore"
+    SIGNED_STORE_FILE = "../keystore/debug.keystore"
+}
