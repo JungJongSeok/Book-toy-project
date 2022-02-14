@@ -1,12 +1,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Book toy project</string>
 
-    <string name="common_network_error">통신 중 에러가 발생하였습니다. 다시 시도해 주세요.</string>
+    <string name="common_network_error">network error</string>
 
     <string name="search_hint">Search</string>
+    <string name="search_manual">
+        - 특정 키워드를 입력받을 수 있도록 한다. 키워드는 최대 2개이고 ‘or’ 와 ‘not’ operator로 구분된다.
+        \n\n- JSON으로 넘어오는 정보(이미지, title 포함)를 보여주어야 한다.
+        \n\n- 첫번째 API 요청에 대한 응답 결과는 첫번째 페이지만 보여준다.
+        \n\n- 검색 결과를 스크롤링을 사용하여 페이지 구분을 없앤다. 즉, 검색 화면은 스크롤을 사용하여 부드럽게 모든 결과를 볼 수 있어야 한다.
+        \n\n- ‘or(|)’ operator는 각각의 키워드로 검색한 결과를 합쳐서 보여준다. (e.g. ‘java|kotlin’ : java로 검색한 결과, kotlin으로 검색한 결과를 합쳐서 보여준다.)
+        \n\n- ‘not(-)’ operator는 앞의 키워드가 제목에 포함된 서적을 검색하되 뒤의 키워드가 포함되지 않은 서적들을 보여준다. (e.g. ‘android-java’ : android가 제목에 포함된 서적을 검색하되 java라는 키워드를 가지고 있는 서적은 제외한다.)
+    </string>
 
     <string name="main_tab_coroutine">coroutine</string>
     <string name="main_tab_rx">rx</string>
 
-    <string name="sample_marvel_resource_format" translatable="false">%s.%s</string>
 </resources>

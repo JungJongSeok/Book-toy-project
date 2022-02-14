@@ -1,5 +1,6 @@
 package com.android.code.lib.koin
 
+import com.android.code.lib.network.BookRxService
 import com.android.code.lib.network.BookService
 import com.android.code.lib.network.provideAPIClientService
 import com.android.code.repository.SearchRepository
@@ -25,4 +26,5 @@ val repositoryModule = module {
 
 val networkModule = module {
     single { provideAPIClientService<BookService>() }
+    single { provideAPIClientService<BookRxService>() }
 }

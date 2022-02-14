@@ -12,8 +12,8 @@ import com.android.code.R
 import com.android.code.databinding.ActivityMainBinding
 import com.android.code.ui.BaseActivity
 import com.android.code.ui.RequiresActivityViewModel
-import com.android.code.ui.search.SearchGridFragment
-import com.android.code.ui.search.SearchStaggeredFragment
+import com.android.code.ui.search.SearchCoroutineFragment
+import com.android.code.ui.search.SearchRxFragment
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 
@@ -21,15 +21,15 @@ import com.google.android.material.tabs.TabLayoutMediator
 @RequiresActivityViewModel(value = MainViewModel::class)
 class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
     companion object {
-        const val PAGE_GRID = 0
-        const val PAGE_STAGGERED = 1
+        const val PAGE_COROUTINE = 0
+        const val PAGE_RX = 1
 
         fun startActivity(context: Context) {
             context.startActivity(Intent(context, MainActivity::class.java))
         }
     }
 
-    @IntDef(PAGE_GRID, PAGE_STAGGERED)
+    @IntDef(PAGE_COROUTINE, PAGE_RX)
     @Retention(AnnotationRetention.SOURCE)
     annotation class Page
 
@@ -37,8 +37,8 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
         MainTabAdapter(this).apply {
             submitList(
                 listOf(
-                    SearchGridFragment.newInstance(),
-                    SearchStaggeredFragment.newInstance()
+                    SearchCoroutineFragment.newInstance(),
+                    SearchRxFragment.newInstance()
                 )
             )
         }
@@ -47,10 +47,10 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
     private val mediator by lazy {
         TabLayoutMediator(binding.tabLayout, binding.pager) { tab, position ->
             when (position) {
-                PAGE_GRID -> {
+                PAGE_COROUTINE -> {
                     tab.text = getString(R.string.main_tab_coroutine)
                 }
-                PAGE_STAGGERED -> {
+                PAGE_RX -> {
                     tab.text = getString(R.string.main_tab_rx)
                 }
             }
@@ -78,7 +78,7 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
 
         })
         val selectPosition = if (binding.tabLayout.selectedTabPosition < 0) {
-            PAGE_GRID
+            PAGE_COROUTINE
         } else {
             binding.tabLayout.selectedTabPosition
         }

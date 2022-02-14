@@ -1,7 +1,6 @@
 package com.android.code
 
 import android.app.Application
-import com.android.code.lib.koin.managerModule
 import com.android.code.lib.koin.networkModule
 import com.android.code.lib.koin.repositoryModule
 import com.android.code.lib.koin.uiModule

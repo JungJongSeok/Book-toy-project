@@ -4,8 +4,8 @@ import androidx.lifecycle.LiveData
 import com.android.code.models.Book
 import com.android.code.repository.SearchRxRepository
 import com.android.code.ui.BaseViewModel
-import com.android.code.util.empty
 import com.android.code.util.livedata.SafetyMutableLiveData
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.kotlin.addTo
 import io.reactivex.rxjava3.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
@@ -26,34 +26,13 @@ class SearchRxBaseViewModel(private val searchRxRepository: SearchRxRepository) 
     override val responseData: LiveData<Pair<List<Book>, Boolean>>
         get() = _responseData
 
-    private val _clickData = SafetyMutableLiveData<Book>()
-    override val clickData: LiveData<Book>
-        get() = _clickData
-
     private val _refreshedSwipeRefreshLayout = SafetyMutableLiveData<Boolean>()
     override val refreshedSwipeRefreshLayout: LiveData<Boolean>
         get() = _refreshedSwipeRefreshLayout
 
-    private var currentOffset = 0
-    private var currentTotal = 0
-    private var currentText: String? = null
-
-    override fun initData(isRefreshing: Boolean) {
-        val isLock = if (isRefreshing) {
-            _refreshedSwipeRefreshLayout
-        } else {
-            _loading
-        }
-        if (isLock.value == true) {
-            return
-        }
-        initSearchData()
-        searchRxRepository.search()
-            .doFinally { isLock.setValueSafety(false) }
-            .subscribe({ response ->
-                _responseData.setValueSafety(totalList to true)
-            }, _error).addTo(compositeDisposable)
-    }
+    private var currentPage = 1
+    private var currentText = ""
+    private var totalCount = 0
 
     private var searchLock = PublishSubject.create<Boolean>()
     override fun search(text: String, isRefreshing: Boolean) {
@@ -69,25 +48,17 @@ class SearchRxBaseViewModel(private val searchRxRepository: SearchRxRepository) 
         initSearchData()
         currentText = text
         if (text.isEmpty()) {
-            val recentSearchList =
-                getPreferencesRecentSearchList()?.run { SearchRecentData(this) }
-            val totalList = if (recentSearchList != null) {
-                listOf(recentSearchList) + initializeDataList
-            } else {
-                initializeDataList
-            }
-            currentOffset = initializeOffset
-            currentTotal = initializeTotal
-            _searchedText.setValueSafety(String.empty())
-            _responseData.setValueSafety(totalList to true)
+            _responseData.setValueSafety(emptyList<Book>() to true)
             return
         }
-        searchRxRepository.search()
+        searchRxRepository.search(text, currentPage)
             .takeUntil(searchLock.firstElement().toFlowable())
             .delay(300, TimeUnit.MILLISECONDS)
             .doFinally { isLock?.setValueSafety(false) }
+            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
-                _responseData.setValueSafety(totalList to true)
+                totalCount = response.parseIntTotal()
+                _responseData.setValueSafety((response.books ?: emptyList()) to true)
             }, {
                 if (it is CancellationException) {
                     return@subscribe
@@ -97,7 +68,7 @@ class SearchRxBaseViewModel(private val searchRxRepository: SearchRxRepository) 
     }
 
     override fun canSearchMore(): Boolean {
-        return currentOffset < currentTotal
+        return (responseData.value?.first?.size ?: Int.MAX_VALUE) < totalCount
     }
 
     override fun searchMore() {
@@ -106,24 +77,29 @@ class SearchRxBaseViewModel(private val searchRxRepository: SearchRxRepository) 
         }
         _loading.setValueSafety(true)
         searchRxRepository.search(
-            nameStartsWith = currentText,
-            offset = currentOffset
+            query = currentText,
+            page = currentPage
         )
             .doFinally { _loading.setValueSafety(false) }
+            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
-                _responseData.setValueSafety(totalList to false)
+                currentPage += 1
+                totalCount = response.parseIntTotal()
+                val previousList = _responseData.value?.first ?: emptyList()
+                _responseData.setValueSafety(
+                    previousList + (response.books ?: emptyList())
+                        to false)
             }, _error).addTo(compositeDisposable)
     }
 
     private fun initSearchData() {
-        currentOffset = 0
-        currentTotal = 0
-        currentText = null
+        currentPage = 1
+        currentText = ""
+        totalCount = 0
     }
 }
 
 interface SearchRxViewModelInput {
-    fun initData(isRefreshing: Boolean = false)
     fun search(text: String, isRefreshing: Boolean = false)
     fun canSearchMore(): Boolean
     fun searchMore()
@@ -131,6 +107,5 @@ interface SearchRxViewModelInput {
 
 interface SearchRxViewModelOutput {
     val responseData: LiveData<Pair<List<Book>, Boolean>>
-    val clickData: LiveData<Book>
     val refreshedSwipeRefreshLayout: LiveData<Boolean>
 }

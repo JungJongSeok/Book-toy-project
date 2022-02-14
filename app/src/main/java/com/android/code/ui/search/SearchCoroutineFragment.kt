@@ -4,12 +4,12 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
-import androidx.lifecycle.LiveData
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.android.code.R
-import com.android.code.databinding.FragmentSearchGridBinding
+import com.android.code.databinding.FragmentSearchCoroutineBinding
+import com.android.code.models.Book
 import com.android.code.ui.BaseFragment
 import com.android.code.ui.main.MainActivity
 import com.android.code.ui.main.MainViewModel
@@ -18,57 +18,32 @@ import com.android.code.util.empty
 import com.bumptech.glide.RequestManager
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
-import org.koin.core.parameter.parametersOf
 
-class SearchGridFragment : BaseFragment<FragmentSearchGridBinding>(),
+class SearchCoroutineFragment : BaseFragment<FragmentSearchCoroutineBinding>(),
     CommonSwipeRefreshLayout.OnRefreshListener {
     companion object {
-        fun newInstance() = SearchGridFragment()
-
-        private const val GRID_SPAN_COUNT = 2
+        fun newInstance() = SearchCoroutineFragment()
     }
 
-    private val viewModel: SearchBaseViewModel by inject { parametersOf(SearchType.GRID) }
+    private val viewModel: SearchBaseViewModel by inject()
     private val mainViewModel: MainViewModel by sharedViewModel()
 
     private val adapter by lazy {
         SearchAdapter(object : SearchAdapterProperty {
             override val requestManager: RequestManager
-                get() = this@SearchGridFragment.requestManager
-            override val searchedData: LiveData<SearchBaseData>
-                get() = viewModel.searchedData
-            override val searchedText: LiveData<String>
-                get() = viewModel.searchedText
+                get() = this@SearchCoroutineFragment.requestManager
 
-            override fun search(text: String) {
-                binding.parent.searchView.setQuery(text, false)
-            }
-
-            override fun removeRecentSearch(text: String) {
-                viewModel.removeRecentSearch(text)
-            }
-
-            override fun clickData(searchData: SearchData) {
-                viewModel.clickData(searchData)
+            override fun clickBook(book: Book) {
+                Toast.makeText(requireContext(), book.title, Toast.LENGTH_SHORT).show()
             }
         })
     }
 
     private val layoutManager by lazy {
-        GridLayoutManager(requireContext(), GRID_SPAN_COUNT).apply {
-            spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                override fun getSpanSize(position: Int): Int {
-                    return if (adapter.currentList.getOrNull(position) is SearchRecentData) {
-                        GRID_SPAN_COUNT
-                    } else {
-                        1
-                    }
-                }
-            }
-        }
+        LinearLayoutManager(requireContext())
     }
 
-    override fun getLayoutResId(): Int = R.layout.fragment_search_grid
+    override fun getLayoutResId(): Int = R.layout.fragment_search_coroutine
 
     override fun initView(savedInstanceState: Bundle?) {
         binding.refresh = this
@@ -92,6 +67,7 @@ class SearchGridFragment : BaseFragment<FragmentSearchGridBinding>(),
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
+                binding.parent.manual.isVisible = newText.isNullOrEmpty()
                 viewModel.search(newText ?: String.empty())
                 return true
             }
@@ -121,23 +97,12 @@ class SearchGridFragment : BaseFragment<FragmentSearchGridBinding>(),
             }
         }
 
-        viewModel.outputs.clickData.observe(this) {
-            if (it !is SearchBaseData) {
-                return@observe
-            }
-            Toast.makeText(requireContext(), it.result.name, Toast.LENGTH_SHORT).show()
-        }
-
-        viewModel.outputs.searchedText.observe(this) {
-            binding.parent.searchView.setQuery(it, false)
-        }
-
         viewModel.outputs.refreshedSwipeRefreshLayout.observe(this) {
             binding.parent.refreshLayout.isRefreshing = it
         }
 
         mainViewModel.outputs.scrollToTop.observe(this) {
-            if (it != MainActivity.PAGE_GRID) {
+            if (it != MainActivity.PAGE_COROUTINE) {
                 return@observe
             }
             binding.parent.recyclerView.stopScroll()
@@ -146,14 +111,10 @@ class SearchGridFragment : BaseFragment<FragmentSearchGridBinding>(),
     }
 
     override fun setViewModelInputs() {
-        viewModel.inputs.initData()
+        // Do noting
     }
 
     override fun refresh(view: SwipeRefreshLayout) {
-        if (binding.parent.searchView.query.isNullOrEmpty()) {
-            viewModel.inputs.initData(true)
-        } else {
-            viewModel.inputs.search(binding.parent.searchView.query.toString(), true)
-        }
+        viewModel.inputs.search(binding.parent.searchView.query.toString(), true)
     }
 }

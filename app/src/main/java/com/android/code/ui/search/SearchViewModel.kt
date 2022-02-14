@@ -2,6 +2,7 @@ package com.android.code.ui.search
 
 import androidx.lifecycle.LiveData
 import com.android.code.models.Book
+import com.android.code.models.SearchResponse
 import com.android.code.repository.SearchRepository
 import com.android.code.ui.BaseViewModel
 import com.android.code.util.livedata.SafetyMutableLiveData
@@ -25,36 +26,15 @@ class SearchBaseViewModel(private val searchRepository: SearchRepository) :
     override val responseData: LiveData<Pair<List<Book>, Boolean>>
         get() = _responseData
 
-    private val _clickData = SafetyMutableLiveData<Book>()
-    override val clickData: LiveData<Book>
-        get() = _clickData
-
     private val _refreshedSwipeRefreshLayout = SafetyMutableLiveData<Boolean>()
     override val refreshedSwipeRefreshLayout: LiveData<Boolean>
         get() = _refreshedSwipeRefreshLayout
 
-    private var currentOffset = 0
-    private var currentTotal = 0
-    private var currentText: String? = null
+    private var currentPage = 1
+    private var currentText = ""
+    private var totalCount = 0
 
-    override fun initData(isRefreshing: Boolean) {
-        launchDataLoad(
-            if (isRefreshing) {
-                _refreshedSwipeRefreshLayout
-            } else {
-                _loading
-            },
-            onLoad = {
-                initSearchData()
-                _responseData.setValueSafety(totalList to true)
-            },
-            onError = {
-                _error.setValueSafety(it)
-            }
-        )
-    }
-
-    private var searchTask: Deferred<List<Book>?>? = null
+    private var searchTask: Deferred<SearchResponse?>? = null
     override fun search(text: String, isRefreshing: Boolean) {
         launchDataLoad(
             if (isRefreshing) {
@@ -67,15 +47,18 @@ class SearchBaseViewModel(private val searchRepository: SearchRepository) :
                 initSearchData()
                 currentText = text
                 if (text.isEmpty()) {
+                    _responseData.setValueSafety(emptyList<Book>() to true)
                     return@launchDataLoad
                 }
                 searchTask = async {
                     kotlin.runCatching {
                         delay(300)
+                        searchRepository.search(text, currentPage)
                     }.getOrNull()
                 }
-                searchTask?.await()?.run {
-                    _responseData.setValueSafety(totalList to true)
+                searchTask?.await()?.let { response ->
+                    totalCount = response.parseIntTotal()
+                    _responseData.setValueSafety((response.books ?: emptyList()) to true)
                 }
             },
             onError = {
@@ -88,13 +71,22 @@ class SearchBaseViewModel(private val searchRepository: SearchRepository) :
     }
 
     override fun canSearchMore(): Boolean {
-        return currentOffset < currentTotal
+        return (responseData.value?.first?.size ?: Int.MAX_VALUE) < totalCount
     }
 
     override fun searchMore() {
         launchDataLoad(
             onLoad = {
-                _responseData.setValueSafety(totalList to false)
+                val response = searchRepository.search(
+                    query = currentText,
+                    page = currentPage
+                )
+                currentPage += 1
+                totalCount = response.parseIntTotal()
+                val previousList = _responseData.value?.first ?: emptyList()
+                _responseData.setValueSafety(
+                    previousList + (response.books ?: emptyList())
+                        to false)
             },
             onError = {
                 _error.setValueSafety(it)
@@ -103,18 +95,19 @@ class SearchBaseViewModel(private val searchRepository: SearchRepository) :
     }
 
     private fun initSearchData() {
+        currentPage = 1
+        currentText = ""
+        totalCount = 0
     }
 }
 
 interface SearchViewModelInput {
-    fun initData(isRefreshing: Boolean = false)
     fun search(text: String, isRefreshing: Boolean = false)
     fun canSearchMore(): Boolean
     fun searchMore()
 }
 
 interface SearchViewModelOutput {
-    val responseData: LiveData<Pair<List<SearchData>, Boolean>>
-    val clickData: LiveData<SearchData>
+    val responseData: LiveData<Pair<List<Book>, Boolean>>
     val refreshedSwipeRefreshLayout: LiveData<Boolean>
 }

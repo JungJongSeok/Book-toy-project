@@ -43,6 +43,20 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
         </com.android.code.ui.views.CommonSwipeRefreshLayout>
+
+        <TextView
+            android:id="@+id/manual"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="20dp"
+            android:gravity="center_vertical"
+            android:text="@string/search_manual"
+            app:layout_constraintBottom_toBottomOf="@id/refreshLayout"
+            app:layout_constraintEnd_toEndOf="@id/refreshLayout"
+            app:layout_constraintStart_toStartOf="@id/refreshLayout"
+            app:layout_constraintTop_toTopOf="@id/refreshLayout">
+
+        </TextView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </layout>
