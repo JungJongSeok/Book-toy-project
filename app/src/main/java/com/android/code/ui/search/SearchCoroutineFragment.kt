@@ -53,7 +53,7 @@ class SearchCoroutineFragment : BaseFragment<FragmentSearchCoroutineBinding>(),
         binding.parent.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
-                if (layoutManager.findLastVisibleItemPosition() > adapter.itemCount - 5
+                if (layoutManager.findLastVisibleItemPosition() > adapter.itemCount - 10
                     && viewModel.canSearchMore()
                 ) {
                     viewModel.inputs.searchMore()
