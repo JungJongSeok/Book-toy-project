@@ -103,6 +103,9 @@ class SearchRxBaseViewModel(private val searchRepository: SearchRepository) :
                 totalCount = response.parseIntTotal()
                 response.books ?: emptyList()
             }
+            .doAfterSuccess {
+                currentPage += 1
+            }
     }
 
     private fun searchOrOperator(text: String): Single<List<Book>> {
@@ -128,6 +131,7 @@ class SearchRxBaseViewModel(private val searchRepository: SearchRepository) :
                         (taskFirst.map { it.get() } + taskSecond.map { it.get() })
                             .map { it.books ?: emptyList() }
                             .flatten()
+                            .distinctBy { it.isbn13 }
                     }.subscribeOn(Schedulers.io())
                 }
         }

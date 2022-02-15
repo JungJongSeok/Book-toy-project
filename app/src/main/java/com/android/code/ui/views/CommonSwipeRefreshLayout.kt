@@ -17,7 +17,7 @@ class CommonSwipeRefreshLayout @JvmOverloads constructor(context: Context, attrs
 
     init {
         setProgressViewOffset(true, 0, 50.toDp(context).toInt())
-        setColorSchemeResources(R.color.color_3746ff)
+        setColorSchemeResources(R.color.purple_500)
     }
 
     fun setOnRefreshListener(onRefreshListener: OnRefreshListener) {

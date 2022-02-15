@@ -2,148 +2,161 @@ package com.android.code.ui.search
 
 import com.android.code.CoroutinesTestExtension
 import com.android.code.InstantExecutorExtension
-import com.android.code.getOrAwaitValue
-import com.android.code.models.marvel.MarvelResult
-import com.android.code.models.marvel.SampleResponse
-import com.android.code.repository.MarvelRxRepository
+import com.android.code.models.Book
+import com.android.code.models.SearchResponse
+import com.android.code.repository.SearchRepository
+import io.reactivex.rxjava3.android.plugins.RxAndroidPlugins
+import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.internal.schedulers.ExecutorScheduler
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
-@DisplayName("SearchBaseViewModel 테스트")
+@DisplayName("SearchRxBaseViewModel 테스트")
 @ExtendWith(InstantExecutorExtension::class, CoroutinesTestExtension::class)
 internal class SearchRxBaseViewModelTest {
-    private lateinit var searchBaseViewModel: SearchRxBaseViewModel
+    private lateinit var searchRxBaseViewModel: SearchRxBaseViewModel
 
     @BeforeEach
     fun setUp() {
-        val marvelResult: MarvelResult = mock {
-            on { id } doReturn 1
-        }
-        val sampleResponse: SampleResponse = mock {
-            on { count } doReturn 20
-            on { total } doReturn 1000
-            on { results } doReturn listOf(marvelResult, marvelResult, marvelResult)
-        }
-        val marvelRepository: MarvelRxRepository = object : MarvelRxRepository {
-            override fun charactersRx(
-                nameStartsWith: String?,
-                offset: Int,
-                limit: Int,
-            ): Single<BaseResponse<SampleResponse>> {
-                return Single.fromCallable { BaseResponse(sampleResponse) }
+        val immediate: Scheduler = object : Scheduler() {
+            override fun scheduleDirect(run: Runnable, delay: Long, unit: TimeUnit): Disposable {
+                return super.scheduleDirect(run, 0, unit)
             }
 
-            override var recentList: List<String>? = listOf("123", "456", "789")
-
+            override fun createWorker(): Worker {
+                return ExecutorScheduler.ExecutorWorker(Executor { obj: Runnable -> obj.run() },
+                    false,
+                    false)
+            }
         }
-        searchBaseViewModel = SearchRxBaseViewModel(marvelRepository)
+
+        RxJavaPlugins.setInitIoSchedulerHandler { immediate }
+        RxJavaPlugins.setInitComputationSchedulerHandler { immediate }
+        RxJavaPlugins.setInitNewThreadSchedulerHandler { immediate }
+        RxJavaPlugins.setInitSingleSchedulerHandler { immediate }
+        RxAndroidPlugins.setInitMainThreadSchedulerHandler { immediate }
+
+        val book1: Book = mock {
+            on { title } doReturn "book1"
+            on { isbn13 } doReturn "book1"
+        }
+        val book2: Book = mock {
+            on { title } doReturn "book2"
+            on { isbn13 } doReturn "book2"
+        }
+        val book3: Book = mock {
+            on { title } doReturn "book3"
+            on { isbn13 } doReturn "book3"
+        }
+        val searchResponse1: SearchResponse = mock {
+            on { books } doReturn listOf(book1, book2)
+            on { error } doReturn "0"
+            on { page } doReturn "1"
+            on { total } doReturn "1"
+        }
+        val searchResponse2: SearchResponse = mock {
+            on { books } doReturn listOf(book2, book3)
+            on { error } doReturn "0"
+            on { page } doReturn "1"
+            on { total } doReturn "1"
+        }
+        val searchResponse3: SearchResponse = mock {
+            on { books } doReturn listOf(book3)
+            on { error } doReturn "0"
+            on { page } doReturn "2"
+            on { total } doReturn "1"
+        }
+        val searchResponse4: SearchResponse = mock {
+            on { books } doReturn listOf(book1, book2, book3)
+            on { error } doReturn "0"
+            on { page } doReturn "1"
+            on { total } doReturn "1"
+        }
+
+
+        val searchRepository: SearchRepository = object : SearchRepository {
+
+            override fun search(query: String, page: Int): Single<SearchResponse> {
+                return when (query) {
+                    "search1" -> {
+                        when (page) {
+                            1 -> Single.fromCallable { searchResponse1 }
+                            2 -> Single.fromCallable { searchResponse3 }
+                            else -> Single.fromCallable { searchResponse4 }
+                        }
+                    }
+                    "search2" -> Single.fromCallable { searchResponse2 }
+                    else -> Single.fromCallable { searchResponse4 }
+                }
+            }
+        }
+        searchRxBaseViewModel = SearchRxBaseViewModel(searchRepository)
     }
 
     @Test
-    @DisplayName("characters api 의 호출한다.")
-    fun initData() {
-        runBlocking {
-            val totalExecutionTime = measureTimeMillis {
-                searchBaseViewModel.initData()
-                assertEquals(searchBaseViewModel.responseData.getOrAwaitValue().first.size, 4)
-            }
-
-            println("initData() Total Time: $totalExecutionTime")
-        }
-    }
-
-    @Test
-    @DisplayName("300 millis 의 threshold 의 characters api 를 검증한다.")
+    @DisplayName("search api 의 호출한다.")
     fun search() {
         runBlocking {
             val totalExecutionTime = measureTimeMillis {
-                searchBaseViewModel.initData()
-                searchBaseViewModel.search("")
-                assertEquals(searchBaseViewModel.searchedText.getOrAwaitValue(), "")
-                searchBaseViewModel.search("spi")
-                delay(1)
-                searchBaseViewModel.search("spider")
-                assertEquals(searchBaseViewModel.searchedText.getOrAwaitValue(), "")
-                delay(500)
-                assertEquals(searchBaseViewModel.searchedText.getOrAwaitValue(), "spider")
-                searchBaseViewModel.search("spider-m")
-                delay(1)
-                assertEquals(searchBaseViewModel.searchedText.getOrAwaitValue(), "spider")
-                searchBaseViewModel.search("spider-man")
-                delay(500)
-                assertEquals(searchBaseViewModel.searchedText.getOrAwaitValue(), "spider-man")
+                searchRxBaseViewModel.search("search1")
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1", "book2"))
+                searchRxBaseViewModel.search("search1-search2")
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1"))
+                searchRxBaseViewModel.search("search1|search2")
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1", "book2", "book3"))
             }
 
-            println("search() Total Time: $totalExecutionTime")
+            println("init() Total Time: $totalExecutionTime")
         }
     }
 
     @Test
-    @DisplayName("characters api 의 pagination 을 검증한다.")
+    @DisplayName("pagination api 의 호출한다.")
     fun searchMore() {
         runBlocking {
-            launch {
-                val totalExecutionTime = measureTimeMillis {
-                    searchBaseViewModel.initData()
-                    assertEquals(searchBaseViewModel.responseData.getOrAwaitValue().first.size, 4)
-                    delay(500)
-                    searchBaseViewModel.searchMore()
-                    assertEquals(searchBaseViewModel.responseData.getOrAwaitValue().first.size, 7)
-                }
+            val totalExecutionTime = measureTimeMillis {
+                searchRxBaseViewModel.search("search1")
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1", "book2"))
 
-                println("searchMore() Total Time: $totalExecutionTime")
+                searchRxBaseViewModel.searchMore()
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1", "book2", "book3"))
+
+
+                searchRxBaseViewModel.search("search1-search2")
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1"))
+
+                searchRxBaseViewModel.searchMore()
+                assertEquals(searchRxBaseViewModel.outputs.responseData.value?.first?.map { it.title },
+                    listOf("book1"))
             }
+
+            println("init() Total Time: $totalExecutionTime")
         }
     }
 
-    @Test
-    @DisplayName("characters api 의 pagination 이 가능한지 여부를 측정한다. Offset < Total")
-    fun canSearchMore() {
-        runBlocking {
-            val totalExecutionTime = measureTimeMillis {
-                assertEquals(searchBaseViewModel.canSearchMore(), false)
-                searchBaseViewModel.initData()
-                assertEquals(searchBaseViewModel.canSearchMore(), true)
-            }
-
-            println("removeRecentSearch() Total Time: $totalExecutionTime")
-        }
-    }
-
-    @Test
-    @DisplayName("최근 검색어의 단어 하나를 제거한다.")
-    fun removeRecentSearch() {
-        runBlocking {
-            val totalExecutionTime = measureTimeMillis {
-                searchBaseViewModel.removeRecentSearch("123")
-                assertEquals(searchBaseViewModel.getPreferencesRecentSearchList()?.size, 2)
-            }
-
-            println("removeRecentSearch() Total Time: $totalExecutionTime")
-        }
-    }
-
-    @Test
-    @DisplayName("click 한 데이터를 검증한다.")
-    fun clickData() {
-        runBlocking {
-            val searchData = mock<SearchData>()
-            val totalExecutionTime = measureTimeMillis {
-                searchBaseViewModel.clickData(searchData)
-                assertEquals(searchBaseViewModel.clickData.getOrAwaitValue(), searchData)
-            }
-
-            println("clickData() Total Time: $totalExecutionTime")
-        }
+    @AfterEach
+    fun done() {
+        RxJavaPlugins.reset()
+        RxAndroidPlugins.reset()
     }
 }
