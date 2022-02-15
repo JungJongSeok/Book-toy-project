@@ -12,9 +12,6 @@ android {
     def dateCode = ("10" + new Date().format('yyMMddHH')).toInteger()
     def date = new Date().format('yyyy/MM/dd')
 
-    Properties properties = new Properties()
-    properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
     defaultConfig {
         applicationId "com.android.code"
         minSdkVersion 21
