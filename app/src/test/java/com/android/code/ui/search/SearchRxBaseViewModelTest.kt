@@ -123,7 +123,7 @@ internal class SearchRxBaseViewModelTest {
                     listOf("book1", "book2", "book3"))
             }
 
-            println("init() Total Time: $totalExecutionTime")
+            println("search() Total Time: $totalExecutionTime")
         }
     }
 
@@ -150,7 +150,7 @@ internal class SearchRxBaseViewModelTest {
                     listOf("book1"))
             }
 
-            println("init() Total Time: $totalExecutionTime")
+            println("searchMore() Total Time: $totalExecutionTime")
         }
     }
 
