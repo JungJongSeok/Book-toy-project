@@ -11,6 +11,7 @@ import com.android.code.R
 import com.android.code.databinding.FragmentSearchRxBinding
 import com.android.code.models.Book
 import com.android.code.ui.BaseFragment
+import com.android.code.ui.book.BookActivity
 import com.android.code.ui.main.MainActivity
 import com.android.code.ui.main.MainViewModel
 import com.android.code.ui.views.CommonSwipeRefreshLayout
@@ -34,7 +35,7 @@ class SearchRxFragment : BaseFragment<FragmentSearchRxBinding>(),
                 get() = this@SearchRxFragment.requestManager
 
             override fun clickBook(book: Book) {
-                Toast.makeText(requireContext(), book.title, Toast.LENGTH_SHORT).show()
+                BookActivity.startActivity(requireContext(), book)
             }
         })
     }
@@ -102,7 +103,7 @@ class SearchRxFragment : BaseFragment<FragmentSearchRxBinding>(),
         }
 
         mainViewModel.outputs.scrollToTop.observe(this) {
-            if (it != MainActivity.PAGE_COROUTINE) {
+            if (it != MainActivity.PAGE_RX) {
                 return@observe
             }
             binding.parent.recyclerView.stopScroll()

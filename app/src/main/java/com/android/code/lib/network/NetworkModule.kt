@@ -37,6 +37,7 @@ internal inline fun <reified T : Any> provideAPIClientService(): T {
         .addConverterFactory(
             GsonConverterFactory.create(
                 GsonBuilder()
+                    .setLenient()
                     .registerTypeAdapterFactory(StringNullToEmptyAdapterFactory())
                     .serializeNulls()
                     .create()

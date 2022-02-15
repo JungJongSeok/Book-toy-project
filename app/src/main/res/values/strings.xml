@@ -13,7 +13,6 @@
         \n\n- ‘not(-)’ operator는 앞의 키워드가 제목에 포함된 서적을 검색하되 뒤의 키워드가 포함되지 않은 서적들을 보여준다. (e.g. ‘android-java’ : android가 제목에 포함된 서적을 검색하되 java라는 키워드를 가지고 있는 서적은 제외한다.)
     </string>
 
-    <string name="main_tab_coroutine">coroutine</string>
     <string name="main_tab_rx">rx</string>
 
 </resources>
